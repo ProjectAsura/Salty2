@@ -87,8 +87,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\asdxLogger.cpp" />
-    <ClCompile Include="..\src\asdxRandom.cpp" />
-    <ClCompile Include="..\src\glApp.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\renderer.cpp" />
   </ItemGroup>
@@ -96,7 +94,6 @@
     <ClInclude Include="..\include\asdxLogger.h" />
     <ClInclude Include="..\include\asdxMath.h" />
     <ClInclude Include="..\include\asdxStopWatch.h" />
-    <ClInclude Include="..\include\glApp.h" />
     <ClInclude Include="..\include\renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

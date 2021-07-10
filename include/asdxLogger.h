@@ -164,7 +164,7 @@ private:
 //-------------------------------------------------------------------------------------------------
 #ifndef DLOGA
   #if defined(DEBUG) || defined(_DEBUG)
-    #define DLOGA( fmt, ... )      asdx::SystemLogger::Instance().WriteA( asdx::LOG_DEBUG, "[File: %s, Line: %d] "fmt"\n", __FILE__, __LINE__, ##__VA_ARGS__ )
+    #define DLOGA( fmt, ... )      asdx::SystemLogger::Instance().WriteA( asdx::LOG_DEBUG, "[File: %s, Line: %d] " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__ )
   #else
     #define DLOGA( fmt, ... )      ((void)0)
   #endif//defined(DEBUG) || defined(_DEBUG)

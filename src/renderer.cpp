@@ -1,8 +1,23 @@
+//-----------------------------------------------------------------------------
+// File : renderer.cpp
+// Desc : Renderer
+// Copyright(c) Project Asura. All right reserved.
+//-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Includes
+//-----------------------------------------------------------------------------
 #include <renderer.h>
 #include <asdxLogger.h>
 
 
+///////////////////////////////////////////////////////////////////////////////
+// Renderer class
+//////////////////////////////////////////////////////////////////////////////
+
+//-----------------------------------------------------------------------------
+//      初期化処理を行います.
+//-----------------------------------------------------------------------------
 bool Renderer::Init(const Desc& desc)
 {
     m_Timer.Start();
@@ -45,9 +60,21 @@ bool Renderer::Init(const Desc& desc)
     // デノイザーの設定.
     {
         m_Denoiser = oidnNewDevice(OIDN_DEVICE_TYPE_DEFAULT);
+        if (m_Denoiser == nullptr)
+        {
+            ELOG("Error : oidnNewDevice() Failed.");
+            return false;
+        }
+
         oidnCommitDevice(m_Denoiser);
 
         m_Filter = oidnNewFilter(m_Denoiser, "RT");
+        if (m_Filter == nullptr)
+        {
+            ELOG("Error : oidnNewFilter() Failed.");
+            return false;
+        }
+
         oidnSetSharedFilterImage(m_Filter, "color",  m_ColorBuffer .data(), OIDN_FORMAT_FLOAT3, m_Width, m_Height, 0, 0, 0);
         oidnSetSharedFilterImage(m_Filter, "albedo", m_AlbedoBuffer.data(), OIDN_FORMAT_FLOAT3, m_Width, m_Height, 0, 0, 0);
         oidnSetSharedFilterImage(m_Filter, "normal", m_NormalBuffer.data(), OIDN_FORMAT_FLOAT3, m_Width, m_Height, 0, 0, 0);
@@ -61,6 +88,9 @@ bool Renderer::Init(const Desc& desc)
     return true;
 }
 
+//-----------------------------------------------------------------------------
+//      終了処理を行います.
+//-----------------------------------------------------------------------------
 void Renderer::Term()
 {
     m_ColorBuffer .clear();
@@ -75,6 +105,9 @@ void Renderer::Term()
     rtcReleaseDevice(m_Device);
 }
 
+//-----------------------------------------------------------------------------
+//      描画処理を行います.
+//-----------------------------------------------------------------------------
 void Renderer::Run()
 {
     RTCIntersectContext context;
@@ -88,8 +121,11 @@ void Renderer::Run()
     {
     }
 
-
     // レイトレ実行.
+    {
+    }
+
+    // デノイズ
     {
     }
 }
