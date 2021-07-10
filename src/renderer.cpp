@@ -9,7 +9,10 @@
 //-----------------------------------------------------------------------------
 #include <renderer.h>
 #include <asdxLogger.h>
+#include <stb/stb_image_write.h>
+#include <ppl.h>
 
+using namespace concurrency;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Renderer class
@@ -38,6 +41,8 @@ bool Renderer::Init(const Desc& desc)
             return false;
         }
     }
+
+    m_MaxBounce = desc.MaxBounce;
 
     // レンダーターゲット生成.
     {
@@ -85,6 +90,12 @@ bool Renderer::Init(const Desc& desc)
 
     m_Seconds = desc.Seconds;
 
+    if (!OnInit())
+    {
+        ELOG("Error : OnInit() Faield.");
+        return false;
+    }
+
     return true;
 }
 
@@ -93,6 +104,8 @@ bool Renderer::Init(const Desc& desc)
 //-----------------------------------------------------------------------------
 void Renderer::Term()
 {
+    OnTerm();
+
     m_ColorBuffer .clear();
     m_AlbedoBuffer.clear();
     m_NormalBuffer.clear();
@@ -113,19 +126,88 @@ void Renderer::Run()
     RTCIntersectContext context;
     rtcInitIntersectContext(&context);
 
-    // アルベドバッファ生成.
+    // アルベドバッファと法線バッファを生成.
     {
     }
 
-    // 法線バッファ生成.
+    // Let's レイトレ!!
+    for(auto y=0u; y<m_Height; ++y)
     {
+        for(auto x=0u; x<m_Width; ++x)
+        {
+            RTCRayHit record = {};
+            OnRayGen(record.ray, x, y);
+
+            for(auto d=0u; d<m_MaxBounce; ++d)
+            {
+                rtcIntersect1(m_Scene, &context, &record);
+                auto idx = CalcIndex(x, y);
+                if (record.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                {
+                    OnMiss(record.ray, idx);
+                    break;
+                }
+
+                if (!OnHit(record.hit, record.ray, idx))
+                { break; }
+            }
+        }
     }
 
-    // レイトレ実行.
+    // デノイズを実行し，画像を保存.
     {
-    }
+        
 
-    // デノイズ
-    {
+        SavePNG("result.png");
     }
+}
+
+//-----------------------------------------------------------------------------
+//      PNGファイルに保存.
+//-----------------------------------------------------------------------------
+void Renderer::SavePNG(const char* path)
+{
+    auto size = m_Width * m_Height;
+    std::vector<uint8_t> outputs;
+    outputs.resize(size * 3);
+    parallel_for<size_t>(0, size, [&](size_t i)
+    {
+#if 0
+        auto r = m_OutputBuffer[i].x;
+        auto g = m_OutputBuffer[i].y;
+        auto b = m_OutputBuffer[i].z;
+#else
+        auto r = m_ColorBuffer[i].x;
+        auto g = m_ColorBuffer[i].y;
+        auto b = m_ColorBuffer[i].z;
+#endif
+
+        // トーンマッピング.
+        {
+        }
+
+        if ( r > 1.0f ) { r = 1.0f; }
+        if ( g > 1.0f ) { g = 1.0f; }
+        if ( b > 1.0f ) { b = 1.0f; }
+
+        if ( r < 0.0f ) { r = 0.0f; }
+        if ( g < 0.0f ) { g = 0.0f; }
+        if ( b < 0.0f ) { b = 0.0f; }
+
+        // sRGB OETF
+        r = (r <= 0.0031308f) ? 12.92f * r : std::pow(1.055f * r, 1.0f / 2.4f) - 0.055f;
+        g = (g <= 0.0031308f) ? 12.92f * g : std::pow(1.055f * g, 1.0f / 2.4f) - 0.055f;
+        b = (b <= 0.0031308f) ? 12.92f * b : std::pow(1.055f * b, 1.0f / 2.4f) - 0.055f;
+
+        auto R = static_cast<uint8_t>( r * 255.0f + 0.5f );
+        auto G = static_cast<uint8_t>( g * 255.0f + 0.5f );
+        auto B = static_cast<uint8_t>( b * 255.0f + 0.5f );
+
+        outputs[i * 3 + 0] = R;
+        outputs[i * 3 + 1] = G;
+        outputs[i * 3 + 2] = B;
+    });
+
+    void* ptr = outputs.data();
+    stbi_write_png(path, m_Width, m_Height, 3, ptr, 0);
 }
